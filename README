@@ -1,0 +1,30 @@
+WebService::Upcoming
+====================
+
+A simple interface to the Upcoming API.
+
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+  LWP::UserAgent
+  HTTP::Request
+  HTTP::Response
+  XML::Parser::Lite::Tree
+
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2005 Greg Knauss <greg@eod.com>
+License: Perl Artistic License
