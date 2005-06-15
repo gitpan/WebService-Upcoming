@@ -13,12 +13,12 @@ package WebService::Upcoming;
 use strict;
 use warnings;
 use LWP::UserAgent;
-use XML::Parser::Lite::Tree;
+use XML::Mini::Document;
 
 
 # Exports *********************************************************************
-our @ISA = 'LWP::UserAgent';
-our $VERSION = '0.02';
+our @ISA = ('LWP::UserAgent');
+our $VERSION = '0.03';
 
 
 # Statics *********************************************************************
@@ -77,17 +77,14 @@ sub key
 
 	return $self->{'keyy'};
 }
-sub call
+sub query
 {
 	my $self;
 	my $upco;
 	my $args;
 	my $rqst;
 	my $rspn;
-	my $node;
 	my $urix;
-	my $objc;
-        my @list;
 
 	($self,$upco,$args) = @_;
 	$self->{'code'} = 0;
@@ -141,73 +138,95 @@ sub call
 		return undef;
 	}
 
-	# Execute the request -------------------------------------------------
+	# Get the response ----------------------------------------------------
 	$rspn = $self->request($rqst);
 	$self->{'code'} = $rspn->code();
+	
+	return $rspn->{'_content'};
+}
+use Data::Dumper;
+sub parse
+{
+	my $self;
+	my $upco;
+	my $rspn;
+	my $mini;
+	my $hash;
+	my $objc;
+	my @objc;
+        my @list;
 
-	# Parse the envelope
-	$node = XML::Parser::Lite::Tree::instance()->parse(
-	 $rspn->{'_content'});
-	$node = $self->_find($node->{'children'});
+	($self,$upco,$rspn) = @_;
+	$self->{'text'} = '';
+
+	# Parse the response --------------------------------------------------
+	$mini = XML::Mini::Document->new();
+	$mini->parse($rspn);
+	$hash = $mini->toHash();
 
 	# Response: Bad envelope
-	if ($node->{'name'} ne 'rsp')
+	if (!defined($hash->{'rsp'}))
 	{
-		$self->{'text'} = 'Bad envelope from server: '.$node->{'name'};
+		$self->{'text'} = 'Bad envelope from server: '.
+		 join(', ',keys(%{$hash}));
 		return undef;
 	}
 
 	# Response: Bad status
-	elsif ($node->{'attributes'}->{'stat'} eq 'fail')
+	elsif ($hash->{'rsp'}->{'stat'} eq 'fail')
 	{
 		$self->{'text'} = 'Fail status from server';
-		$node = $self->_find($node->{'children'});
-		$self->{'text'} = $node->{'attributes'}->{'msg'} if
-		 (($node->{'name'} eq 'error') &&
-		  ($node->{'attributes'}->{'msg'}));
-		
+		$self->{'text'} = $hash->{'rsp'}->{'error'}->{'msg'} if
+		 (($hash->{'rsp'}->{'error'}) &&
+		  ($hash->{'rsp'}->{'error'}->{'msg'}));
 		return undef;
 	}
 
 	# Response: Bad version
-	elsif ($node->{'attributes'}->{'version'} ne '1.0')
+	elsif ($hash->{'rsp'}->{'version'} ne '1.0')
 	{
 		$self->{'text'} = 'Unknown version from server: '.
-		 $node->{'attributes'}->{'version'};
+		 $hash->{'rsp'}->{'version'};
 		return undef;
 	}
 
 	# Response: Bad... something.  What the hell was that?
-	elsif ($node->{'attributes'}->{'stat'} ne 'ok')
+	elsif ($hash->{'rsp'}->{'stat'} ne 'ok')
 	{
 		$self->{'text'} = 'Unknown status from server: '.
-		 $node->{'attributes'}->{'stat'};
+		 $hash->{'rsp'}->{'stat'};
 		return undef;
 	}
 
 	# Parse the envelope contents -----------------------------------------
 	$objc = $Upco_Info{$upco}->{'objc'};
 	return [] if (!$objc);
-	foreach (@{$node->{'children'}})
+	if (ref($hash->{'rsp'}->{$objc->_name()}) eq 'HASH')
 	{
-		if ($_->{'type'} eq 'tag')
-		{
-			if ($_->{'name'} eq $objc->_name())
-			{
-				push(@list,$objc->new($_->{'attributes'},
-				 $node->{'attributes'}->{'version'}));
-			}
-			else
-			{
-				$self->{'text'} =
-				 'Unexpected object from server: '.
-				 $_->{'name'};
-				return undef;
-			}
-		}
+		push(@objc,$hash->{'rsp'}->{$objc->_name()});
+	}
+	else
+	{
+		@objc = @{$hash->{'rsp'}->{$objc->_name()}};
+	}
+	foreach (@objc)
+	{
+		push(@list,$objc->new($_,$hash->{'rsp'}->{'version'}));
 	}
 
         return \@list;
+}
+sub call
+{
+	my $self;
+	my $upco;
+	my $args;
+	my $rspn;
+
+	($self,$upco,$args) = @_;
+	$rspn = $self->query($upco,$args);
+	return undef if (!defined($rspn));
+	return $self->parse($upco,$rspn);
 }
 sub  err_code
 {
@@ -286,6 +305,22 @@ On failure, call() returns undef.  HTTP error codes are available through $upco-
 Version 1.0 of the Upcoming API includes the following objects, all represented in the Perl namespace C<WebService::Upcoming::Object>: Category, Country, Event, Metro, State, User, Venue and Watchlist.
 
 For a list of methods, their arguments and what object to expect in response, see http://www.upcoming.org/services/api/.  For each XML response in the Upcoming documentation, the attributes are available through methods of the same name on the C<WebService::Upcoming::Object::*> objects.
+
+=item C<query($method, \$args)>
+
+Constructs and executes a request to upcoming.org, returning the XML response.
+
+$method defines the Upcoming API method to call.  \%args is a reference to a hash containing arguments to the method.
+
+See <call()> for details.
+
+=item C<parse($method, $response)>
+
+Parses an API response from upcoming.org, returning an array of objects that define the response.
+
+$method defines the Upcoming API method that generated the response.  $response is the XML sent by the server.
+
+See <call()> for details.
 
 =item C<err_code()>
 

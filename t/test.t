@@ -22,11 +22,15 @@ my $keyy;
 my $upco;
 my $objc;
 
-$keyy = '*** UPCOMING API KEY HERE ***';
-die("\n\n\n\nYou must replace the text...\n\n".
- "\t*** UPCOMING API KEY HERE ***\n\n".
- "...in ./t/test.t with your own API key in order for the test to ".
- "succeed.\n\n\n\n") if ($keyy !~ /[a-z0-9]{10}/);
+die("\n\n\n".
+    "\tYou must put your Upcoming API key in the file ./t/upcoming.key\n".
+    "\tin order to successfully run these tests!\n\n\n")
+ if (!open(FILE,"t/upcoming.key"));
+chomp($keyy = <FILE>);
+close(FILE);
+die("\n\n\n".
+    "\tThe first line of ./t/upcoming.key doesn't look like an Upcoming\n".
+    "\tAPI key!\n\n\n") if ($keyy !~ /^[a-z0-9]{10}$/);
 $upco = WebService::Upcoming->new($keyy);
 
 $objc = $upco->call('event.getInfo',{ 'event_id' => 1 });
@@ -38,5 +42,5 @@ ok($objc->[0]->venue_id() == 1);                             # Right venue?
 $objc = $upco->call('event.getInfo');
 ok($upco->err_text() eq 'Missing valid event_id parameter'); # Missing arg
 
-$objc = $upco->call('imaginary.method',{ 'pretend.argument' => 1 });
+$objc = $upco->call('imaginary.method');
 ok($upco->err_text() =~ /^Unknown Upcoming API method: /);   # Bad method

@@ -14,23 +14,18 @@ use WebService::Upcoming::Object;
 
 
 # Exports *********************************************************************
-our @ISA = 'WebService::Upcoming::Object';
-our $VERSION = '0.02';
+our @ISA = ('WebService::Upcoming::Object');
+our $VERSION = '0.03';
 
 
 # Code ************************************************************************
-sub new
-{
-	return WebService::Upcoming::Object::new(shift,@_);
-}
+sub new   { return WebService::Upcoming::Object::new(shift,@_); }
 sub _name { return 'state'; }
 sub _list { shift;
-            return qw( id name code ) if ($_[0] eq '1.0');
+            return ('id','name','code') if ($_[0] eq '1.0');
             return (); };
 sub _info { return (
-             { 'upco' => 'metro.getStateList',
-               'http' => 'GET' },
-            ); }
+             { 'upco' => 'metro.getStateList','http' => 'GET' } ); }
 1;
 __END__
 

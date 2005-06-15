@@ -15,24 +15,19 @@ use WebService::Upcoming::Object;
 
 
 # Exports *********************************************************************
-our @ISA = 'WebService::Upcoming::Object';
-our $VERSION = '0.02';
+our @ISA = ('WebService::Upcoming::Object');
+our $VERSION = '0.03';
 
 
 # Code ************************************************************************
-sub new
-{
-	return WebService::Upcoming::Object::new(@_);
-}
+sub new   { return WebService::Upcoming::Object::new(@_); }
 sub _name { return 'watchlist'; }
 sub _list { shift;
-            return qw( id,name,username,zip,photourl,url )
+            return ('id','name','username','zip','photourl','url' )
              if ($_[0] eq '1.0');
             return (); }
 sub _info { return (
-             { 'upco' => 'user.getInfo',
-               'http' => 'GET' }
-             ); }
+             { 'upco' => 'user.getInfo','http' => 'GET' } ); }
 1;
 __END__
 

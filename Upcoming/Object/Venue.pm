@@ -15,30 +15,22 @@ use WebService::Upcoming::Object;
 
 
 # Exports *********************************************************************
-our @ISA = 'WebService::Upcoming::Object';
-our $VERSION = '0.02';
+our @ISA = ('WebService::Upcoming::Object');
+our $VERSION = '0.03';
 
 
 # Code ************************************************************************
-sub new
-{
-	return WebService::Upcoming::Object::new(shift,@_);
-}
+sub new   { return WebService::Upcoming::Object::new(shift,@_); }
 sub _name { return 'venue'; }
 sub _list { shift;
-            return qw( id name address city zip phone url
-                       description ) if ($_[0] eq '1.0');
+            return ('id','name','address','city','zip','phone','url',
+                    'description') if ($_[0] eq '1.0');
             return (); };
 sub _info { return (
-             { 'upco' => 'venue.add',
-               'http' => 'POST' },
-             { 'upco' => 'venue.getInfo',
-               'http' => 'GET' },
-             { 'upco' => 'venue.getList',
-               'http' => 'GET' },
-             { 'upco' => 'venue.search',
-               'http' => 'GET' }
-             ); }
+             { 'upco' => 'venue.add',    'http' => 'POST' },
+             { 'upco' => 'venue.getInfo','http' => 'GET'  },
+             { 'upco' => 'venue.getList','http' => 'GET'  },
+             { 'upco' => 'venue.search', 'http' => 'GET'  } ); }
 1;
 __END__
 

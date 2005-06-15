@@ -19,9 +19,7 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
   LWP::UserAgent
-  HTTP::Request
-  HTTP::Response
-  XML::Parser::Lite::Tree
+  XML::Mini::Document
 
 
 COPYRIGHT AND LICENCE
