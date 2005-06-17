@@ -18,7 +18,7 @@ use XML::Mini::Document;
 
 # Exports *********************************************************************
 our @ISA = ('LWP::UserAgent');
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 
 # Statics *********************************************************************
@@ -141,7 +141,10 @@ sub query
 	# Get the response ----------------------------------------------------
 	$rspn = $self->request($rqst);
 	$self->{'code'} = $rspn->code();
-	
+
+	# HACK: Work around an empty-attribute bug in XML::Mini
+	$rspn->{'_content'} =~ s/[\w\_\-]+=\"\"//g;
+
 	return $rspn->{'_content'};
 }
 use Data::Dumper;
@@ -203,7 +206,7 @@ sub parse
 	return [] if (!$objc);
 	if (ref($hash->{'rsp'}->{$objc->_name()}) eq 'HASH')
 	{
-		push(@objc,$hash->{'rsp'}->{$objc->_name()});
+		@objc = ($hash->{'rsp'}->{$objc->_name()});
 	}
 	else
 	{
@@ -213,7 +216,6 @@ sub parse
 	{
 		push(@list,$objc->new($_,$hash->{'rsp'}->{'version'}));
 	}
-
         return \@list;
 }
 sub call

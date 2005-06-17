@@ -1,3 +1,8 @@
+0.04 -- 06/17/2005
+------------------
+* Work around an empty-attribute bug in XML::Mini
+* Added 'tags' to list of Event attributes
+
 0.03 -- 06/15/2005
 ------------------
 * Added query() and parse() methods to Upcoming object, to allow for

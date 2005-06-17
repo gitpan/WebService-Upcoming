@@ -15,7 +15,7 @@ use WebService::Upcoming::Object;
 
 # Exports *********************************************************************
 our @ISA = ('WebService::Upcoming::Object');
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 
 # Code ************************************************************************
