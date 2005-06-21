@@ -10,7 +10,7 @@ package WebService::Upcoming::Object;
 
 
 # Exports *********************************************************************
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 
 # Code ************************************************************************
@@ -35,7 +35,8 @@ sub new
 
 		# Duuuude!
 		$meth = $_;
-		*{$clas.'::'.$meth} = sub { return shift->{$meth}; };
+		*{$clas.'::'.$meth} = sub { return shift->{$meth}; }
+			if (!defined(*{$clas.'::'.$meth}));
 	}
 
 	return $self;

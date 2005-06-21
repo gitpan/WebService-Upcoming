@@ -1,3 +1,9 @@
+0.05 -- 06/18/2005
+------------------
+* Added XML::Parser::Lite as first-choice XML parser, fall back to
+  XML::Mini::Document if it's not available
+* Removed no-longer-used _find() method
+
 0.04 -- 06/17/2005
 ------------------
 * Work around an empty-attribute bug in XML::Mini

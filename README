@@ -19,7 +19,7 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
   LWP::UserAgent
-  XML::Mini::Document
+  XML::Parser::Lite or XML::Mini::Document
 
 
 COPYRIGHT AND LICENCE

@@ -13,12 +13,15 @@ package WebService::Upcoming;
 use strict;
 use warnings;
 use LWP::UserAgent;
-use XML::Mini::Document;
+eval { require XML::Parser::Lite; };
+eval { require XML::Mini::Document; } if (!_parser());
+die("Could not load XML::Parser::Lite or XML::Mini::Document!\n") if
+	(!_parser());
 
 
 # Exports *********************************************************************
 our @ISA = ('LWP::UserAgent');
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 
 # Statics *********************************************************************
@@ -142,18 +145,17 @@ sub query
 	$rspn = $self->request($rqst);
 	$self->{'code'} = $rspn->code();
 
-	# HACK: Work around an empty-attribute bug in XML::Mini
-	$rspn->{'_content'} =~ s/[\w\_\-]+=\"\"//g;
+	# HACK: Work around an empty-attribute bug in XML::Mini::Document 1.28
+	$rspn->{'_content'} =~ s/[\w\_\-]+=\"\"//g if
+		(_parser() eq 'Mini::Document');
 
 	return $rspn->{'_content'};
 }
-use Data::Dumper;
 sub parse
 {
 	my $self;
 	my $upco;
 	my $rspn;
-	my $mini;
 	my $hash;
 	my $objc;
 	my @objc;
@@ -163,9 +165,52 @@ sub parse
 	$self->{'text'} = '';
 
 	# Parse the response --------------------------------------------------
-	$mini = XML::Mini::Document->new();
-	$mini->parse($rspn);
-	$hash = $mini->toHash();
+	if (_parser() eq 'Parser::Lite')
+	{
+		my $lite;
+		my @hash;
+
+		$hash = {};
+		$lite = new XML::Parser::Lite('Handlers' =>
+		 {
+			'Start' => sub
+			 {
+				my $temp;
+
+				shift;
+				push(@hash,$hash);
+				$temp = shift;
+				$hash->{$temp} = [$hash->{$temp}]
+					if (ref($hash->{$temp}) eq 'HASH');
+				if (ref($hash->{$temp}) eq 'ARRAY')
+				{
+					push(@{$hash->{$temp}},$hash = {});
+				}
+				else
+				{
+					$hash = $hash->{$temp} = {};
+				}
+				while ($temp = shift)
+				{
+					$hash->{$temp} = shift;
+				}
+			 },
+			'End' => sub
+			 {
+				shift;
+				$hash = pop(@hash);
+			 }
+		 });
+		$lite->parse($rspn);
+	}
+	else
+	{
+		my $mini;
+
+		$mini = XML::Mini::Document->new();
+		$mini->parse($rspn);
+		$hash = $mini->toHash();
+	}
 
 	# Response: Bad envelope
 	if (!defined($hash->{'rsp'}))
@@ -203,7 +248,7 @@ sub parse
 
 	# Parse the envelope contents -----------------------------------------
 	$objc = $Upco_Info{$upco}->{'objc'};
-	return [] if (!$objc);
+	return [] if ((!$objc) || (!$hash->{'rsp'}->{$objc->_name()}));
 	if (ref($hash->{'rsp'}->{$objc->_name()}) eq 'HASH')
 	{
 		@objc = ($hash->{'rsp'}->{$objc->_name()});
@@ -238,17 +283,11 @@ sub  err_text
 {
 	return $_[0]->{'text'};
 }
-sub _find
+sub _parser
 {
-	my $self;
-	my $chld;
-
-	($self,$chld) = @_;
-	for (@{$chld})
-	{
-		return $_ if ($_->{'type'} eq 'tag');
-	}
-	return {};
+	return 'Parser::Lite'   if (defined($XML::Parser::Lite::VERSION));
+	return 'Mini::Document' if (defined($XML::Mini::Document::VERSION));
+	return undef;
 }
 1;
 __END__
@@ -261,8 +300,7 @@ WebService::Upcoming - Perl interface to the Upcoming API
 
   use WebService::Upcoming;
 
-  my $upco = new WebService::Upcoming(
-              "*** UPCOMING API KEY HERE ***");
+  my $upco = new WebService::Upcoming("*** UPCOMING API KEY HERE ***");
   my $objc = $upco->call("event.search",
               {
                   "search_text" => "music"
@@ -270,7 +308,7 @@ WebService::Upcoming - Perl interface to the Upcoming API
   die("ERROR: ".$upco->err_text()."\n") if (!defined($objc));
   foreach (@{$objc})
   {
-    print("EVENT: ".$_->name()." on ".$_->start_date()."\n");
+	print("EVENT: ".$_->name()." on ".$_->start_date()."\n");
   }
 
 
